@@ -1,0 +1,40 @@
+// --- BASE PALETTE (From Image) ---
+$THEME-BG-MAIN: #111613;      // Negro Musgo - Fondo Principal
+$THEME-BG-CARD: #1A2421;      // Gris Verdoso Oscuro - Superficies/Cards
+$THEME-ACCENT: #2563EB;       // Azul Institucional - Botones/Enlaces
+$THEME-ACCENT-DARK: #1E3A8A;  // Azul Marino - Bordes/Badges
+$THEME-TEXT-MAIN: #E2E8F0;    // Blanco Hueso - Texto Principal
+$THEME-TEXT-SEC: #94A3B8;     // Gris Medio - Texto Secundario
+
+// --- FUNCTIONAL VARIABLES ---
+$primary: $THEME-ACCENT;
+$secondary: $THEME-ACCENT-DARK;
+$background: $THEME-BG-MAIN;
+$surface: $THEME-BG-CARD;
+
+$text-light: $THEME-TEXT-MAIN;
+$text-muted: $THEME-TEXT-SEC;
+
+// --- UTILITIES / OVERLAYS ---
+$overlay-accent: rgba($THEME-ACCENT, 0.1); 
+$overlay-dark: rgba($THEME-BG-MAIN, 0.8);
+
+// --- ALERT COLORS ---
+$alert-warning: #f59e0b;
+$alert-info: #3b82f6; 
+$alert-success: #10b981;
+$alert-error: #ef4444;
+
+$alert-warning-bg: rgba($alert-warning, 0.1);
+$alert-info-bg: rgba($alert-info, 0.1);
+$alert-success-bg: rgba($alert-success, 0.1);
+$alert-error-bg: rgba($alert-error, 0.1);
+
+// Backward compatibility (Deprecated - Do not use in new components)
+$white: #ffffff;
+$FUDMASTER-DARK: var(--text-main);
+$FUDMASTER-LIGHT: var(--bg-main);
+$FUDMASTER-GREEN: var(--accent);
+$FUDMASTER-ORANGE: var(--accent);
+$FUDMASTER-BLUE: var(--accent);
+$FUDMASTER-SECONDARY: var(--accent-dark);

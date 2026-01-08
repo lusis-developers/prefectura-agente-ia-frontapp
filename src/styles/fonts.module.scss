@@ -1,0 +1,17 @@
+@use 'sass:string';
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
+
+:root {
+  --font-inter: 'Inter', sans-serif;
+  --font-poppins: 'Poppins', sans-serif;
+  --font-roboto: 'Roboto', sans-serif;
+  --font-titillium: 'Titillium Web', sans-serif;
+  --font-montserrat: 'Montserrat', sans-serif;
+}
+
+$font-principal: 'Montserrat', sans-serif;
+$font-secondary: 'Inter', sans-serif;
+$font-poppins: 'Poppins', sans-serif;
+$font-roboto: 'Roboto', sans-serif;
+$font-titillium: 'Titillium Web', sans-serif;

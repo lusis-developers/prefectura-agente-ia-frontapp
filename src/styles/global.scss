@@ -1,0 +1,50 @@
+@use './colorVariables.module.scss' as *;
+@use './fonts.module.scss' as *;
+
+html,
+body {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  margin: 0;
+  font-family: $font-principal;
+}
+
+:root {
+  // Light Mode (Inverted logic for background while keeping accents)
+  --bg-main: #F8FAFC; // Light gray/white for light mode
+  --bg-card: #FFFFFF;
+  --text-main: #0F172A; // Slate 900
+  --text-sec: #64748B;  // Slate 500
+  --accent: #{$primary};
+  --accent-dark: #{$secondary};
+  --border: #{rgba(#0F172A, 0.08)};
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+[data-theme='dark'] {
+  --bg-main: #{$THEME-BG-MAIN};
+  --bg-card: #{$THEME-BG-CARD};
+  --text-main: #{$THEME-TEXT-MAIN};
+  --text-sec: #{$THEME-TEXT-SEC};
+  --accent: #{$THEME-ACCENT};
+  --accent-dark: #{$THEME-ACCENT-DARK};
+  --border: #{rgba($THEME-ACCENT, 0.1)};
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3);
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+}
+
+.user-header {
+  background-color: var(--bg-card);
+  color: var(--text-main);
+  border-bottom: 1px solid var(--border);
+}
+
+.user-sidebar {
+  background-color: var(--bg-card);
+  border-right: 1px solid var(--border);
+}
+

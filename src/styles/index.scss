@@ -1,0 +1,71 @@
+@forward 'colorVariables.module.scss';
+@forward 'fonts.module.scss';
+
+@use 'sass:color';
+@use 'sass:math';
+
+// Minimal, global replacements for deprecated lighten()/darken()
+@function _to-percent($amount) {
+  @if math.unit($amount) == '%' {
+    @return $amount;
+  }
+  @return $amount * 1%;
+}
+
+@function lighten($c, $amount, $method: 'adjust') {
+  $pct: _to-percent($amount);
+  @if $method == 'scale' {
+    @return color.scale($c, $lightness: $pct);
+  }
+  @return color.adjust($c, $lightness: $pct);
+}
+
+@function darken($c, $amount, $method: 'adjust') {
+  $pct: _to-percent($amount);
+  @if $method == 'scale' {
+    @return color.scale($c, $lightness: -$pct);
+  }
+  @return color.adjust($c, $lightness: -$pct);
+}
+
+:root {
+  // Dark mode (Default)
+  --bg-main: #111613;
+  --bg-card: #1a2421;
+  --accent: #2563eb;
+  --accent-dark: #1e3a8a;
+  --text-main: #e2e8f0;
+  --text-sec: #94a3b8;
+
+  --transition-speed: 0.3s;
+}
+
+[data-theme='light'] {
+  --bg-main: #f8fafc;
+  --bg-card: #ffffff;
+  --accent: #2563eb;
+  --accent-dark: #1e3a8a;
+  --text-main: #1e293b;
+  --text-sec: #64748b;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Montserrat', sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  transition:
+    background-color var(--transition-speed),
+    color var(--transition-speed);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#app {
+  min-height: 100vh;
+}
