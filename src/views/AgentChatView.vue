@@ -132,14 +132,14 @@ onMounted(() => {
 
       <!-- Input Bar -->
       <div class="input-area">
-        <form @submit.prevent="handleSend" class="input-form" :class="{ 'blocked': chatStore.isBlocked }">
+        <form @submit.prevent="handleSend" class="input-form">
           <input 
             v-model="newMessage"
             type="text" 
-            :placeholder="chatStore.isBlocked ? 'Entrada bloqueada temporalmente...' : 'Escribe tu mensaje aquí...'"
-            :disabled="chatStore.isTyping || chatStore.isBlocked"
+            placeholder="Escribe tu mensaje aquí..."
+            :disabled="chatStore.isTyping"
           />
-          <button type="submit" :disabled="!newMessage.trim() || chatStore.isTyping || chatStore.isBlocked" class="send-btn">
+          <button type="submit" :disabled="!newMessage.trim() || chatStore.isTyping" class="send-btn">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
             </svg>
@@ -148,121 +148,10 @@ onMounted(() => {
         <p class="disclaimer">Asistente oficial de la Prefectura del Guayas enfocado en procesos institucionales.</p>
       </div>
     </main>
-
-    <!-- Block Modal -->
-    <Transition name="fade">
-      <div v-if="chatStore.isBlocked" class="modal-overlay">
-        <div class="modal-content">
-          <div class="lock-icon">🛑</div>
-          <h2>Límite de Tiempo Alcanzado</h2>
-          <p>Para garantizar un servicio fluido para todos, por favor espera unos momentos antes de realizar la siguiente consulta.</p>
-          
-          <div class="timer-display">
-            {{ chatStore.blockTimer }}<span>s</span>
-          </div>
-          
-          <div class="progress-bar">
-            <div class="progress-fill" :style="{ width: (chatStore.blockTimer / 60 * 100) + '%' }"></div>
-          </div>
-          
-          <p class="modal-note">El sistema se desbloqueará automáticamente.</p>
-        </div>
-      </div>
-    </Transition>
   </div>
 </template>
 
 <style lang="scss" scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1.5rem;
-}
-
-.modal-content {
-  background: var(--bg-card);
-  padding: 2.5rem;
-  border-radius: 24px;
-  max-width: 450px;
-  width: 100%;
-  text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-  animation: modalPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-
-  .lock-icon {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-  }
-
-  h2 {
-    color: var(--text-main);
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
-  }
-
-  p {
-    color: var(--text-sec);
-    line-height: 1.5;
-    margin-bottom: 2rem;
-    font-size: 0.95rem;
-  }
-
-  .timer-display {
-    font-size: 4rem;
-    font-weight: 800;
-    color: var(--accent);
-    margin-bottom: 1rem;
-    font-variant-numeric: tabular-nums;
-
-    span {
-      font-size: 1.5rem;
-      margin-left: 0.2rem;
-      opacity: 0.7;
-    }
-  }
-
-  .progress-bar {
-    width: 100%;
-    height: 6px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-    overflow: hidden;
-    margin-bottom: 1.5rem;
-
-    .progress-fill {
-      height: 100%;
-      background: var(--accent);
-      transition: width 1s linear;
-    }
-  }
-
-  .modal-note {
-    font-size: 0.75rem;
-    margin-bottom: 0;
-    opacity: 0.6;
-  }
-}
-
-.input-form.blocked {
-  opacity: 0.7;
-  background: rgba(0, 0, 0, 0.2) !important;
-  cursor: not-allowed;
-
-  input {
-    cursor: not-allowed;
-  }
-}
-
 // Transitions
 .fade-enter-active,
 .fade-leave-active {
@@ -272,18 +161,6 @@ onMounted(() => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
-}
-
-@keyframes modalPop {
-  from {
-    transform: scale(0.8) translateY(20px);
-    opacity: 0;
-  }
-
-  to {
-    transform: scale(1) translateY(0);
-    opacity: 1;
-  }
 }
 
 // ... (resto de los estilos existentes igual)

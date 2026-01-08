@@ -12,11 +12,9 @@ export interface Message {
 export const useChatStore = defineStore('chat', () => {
   const messages = ref<Message[]>([]);
   const isTyping = ref(false);
-  const isBlocked = ref(false);
-  const blockTimer = ref(0);
 
   const sendMessage = async (text: string) => {
-    if (!text.trim() || isBlocked.value) return;
+    if (!text.trim()) return;
 
     // Add user message
     const userMsg: Message = {
@@ -30,7 +28,7 @@ export const useChatStore = defineStore('chat', () => {
 
     try {
       // Map history for backend: { role: 'user' | 'assistant', content: string }
-      const history = messages.value.slice(0, -1).map(m => ({
+      const history = messages.value.slice(0, -1).map((m: Message) => ({
         role: m.role,
         content: m.content
       }));
@@ -45,22 +43,10 @@ export const useChatStore = defineStore('chat', () => {
       };
       messages.value.push(assistantMsg);
     } catch (error) {
-      // Activar bloqueo si hay error
-      isBlocked.value = true;
-      blockTimer.value = 60;
-
-      const interval = setInterval(() => {
-        blockTimer.value--;
-        if (blockTimer.value <= 0) {
-          isBlocked.value = false;
-          clearInterval(interval);
-        }
-      }, 1000);
-
       const errorMsg: Message = {
         role: 'assistant',
-        content: `### ⚠️ Se ha alcanzado un límite temporal.
-Por favor, espera a que el contador finalice para continuar con tu consulta.`,
+        content: `### ⚠️ Lo siento, ha ocurrido un error al procesar tu mensaje.
+Por favor, intenta de nuevo en unos momentos.`,
         timestamp: Date.now()
       };
       messages.value.push(errorMsg);
@@ -71,15 +57,11 @@ Por favor, espera a que el contador finalice para continuar con tu consulta.`,
 
   const clearChat = () => {
     messages.value = [];
-    isBlocked.value = false;
-    blockTimer.value = 0;
   };
 
   return {
     messages,
     isTyping,
-    isBlocked,
-    blockTimer,
     sendMessage,
     clearChat
   };
