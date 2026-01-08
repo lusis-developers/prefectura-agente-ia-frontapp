@@ -3,10 +3,34 @@ import { ref, onMounted, nextTick, watch } from 'vue';
 import { useChatStore } from '@/stores/chat';
 import { useThemeStore } from '@/stores/theme';
 import { useRouter } from 'vue-router';
+import MarkdownIt from 'markdown-it';
 
 const chatStore = useChatStore();
 const themeStore = useThemeStore();
 const router = useRouter();
+
+const md = new MarkdownIt({
+  html: true,
+  linkify: true,
+  typographer: true,
+});
+
+// Custom renderer for tables to add a wrapper for responsiveness
+const defaultRender = md.renderer.rules.table_open || function (tokens, idx, options, env, self) {
+  return self.renderToken(tokens, idx, options);
+};
+
+md.renderer.rules.table_open = function (tokens, idx, options, env, self) {
+  return '<div class="table-container">' + defaultRender(tokens, idx, options, env, self);
+};
+
+const defaultTableClose = md.renderer.rules.table_close || function (tokens, idx, options, env, self) {
+  return self.renderToken(tokens, idx, options);
+};
+
+md.renderer.rules.table_close = function (tokens, idx, options, env, self) {
+  return defaultTableClose(tokens, idx, options, env, self) + '</div>';
+};
 
 const newMessage = ref('');
 const messagesContainer = ref<HTMLElement | null>(null);
@@ -29,6 +53,10 @@ const handleSend = async () => {
 const handleLogout = () => {
   localStorage.removeItem('isAuth');
   router.push('/login');
+};
+
+const renderMarkdown = (content: string) => {
+  return md.render(content);
 };
 
 watch(() => chatStore.messages.length, scrollToBottom);
@@ -59,17 +87,13 @@ onMounted(() => {
       </div>
       
       <div class="header-right">
-        <select v-model="chatStore.selectedProvider" class="provider-select">
-          <option value="claude">Claude 3.5 Sonnet</option>
-          <option value="gemini">Gemini 1.5 Pro</option>
-        </select>
         
-        <button @click="themeStore.toggleTheme" class="icon-btn">
+        <button @click="themeStore.toggleTheme" class="icon-btn" title="Cambiar tema">
           <span v-if="themeStore.theme === 'dark'">🌞</span>
           <span v-else>🌙</span>
         </button>
         
-        <button @click="handleLogout" class="logout-btn">Salir</button>
+        <button @click="handleLogout" class="logout-btn">Cerrar Sesión</button>
       </div>
     </header>
 
@@ -86,9 +110,7 @@ onMounted(() => {
           </div>
           
           <div class="content-wrapper">
-            <div class="message-content">
-              {{ msg.content }}
-            </div>
+            <div class="message-content markdown-body" v-html="renderMarkdown(msg.content)"></div>
             <div class="message-meta">
               <span class="time">{{ new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</span>
               <span v-if="msg.provider" class="provider-tag">{{ msg.provider }}</span>
@@ -110,26 +132,161 @@ onMounted(() => {
 
       <!-- Input Bar -->
       <div class="input-area">
-        <form @submit.prevent="handleSend" class="input-form">
+        <form @submit.prevent="handleSend" class="input-form" :class="{ 'blocked': chatStore.isBlocked }">
           <input 
             v-model="newMessage"
             type="text" 
-            placeholder="Escribe tu mensaje aquí..."
-            :disabled="chatStore.isTyping"
+            :placeholder="chatStore.isBlocked ? 'Entrada bloqueada temporalmente...' : 'Escribe tu mensaje aquí...'"
+            :disabled="chatStore.isTyping || chatStore.isBlocked"
           />
-          <button type="submit" :disabled="!newMessage.trim() || chatStore.isTyping" class="send-btn">
+          <button type="submit" :disabled="!newMessage.trim() || chatStore.isTyping || chatStore.isBlocked" class="send-btn">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
             </svg>
           </button>
         </form>
-        <p class="disclaimer">Este es un asistente de IA enfocado en procesos y servicios de la Prefectura del Guayas.</p>
+        <p class="disclaimer">Asistente oficial de la Prefectura del Guayas enfocado en procesos institucionales.</p>
       </div>
     </main>
+
+    <!-- Block Modal -->
+    <Transition name="fade">
+      <div v-if="chatStore.isBlocked" class="modal-overlay">
+        <div class="modal-content">
+          <div class="lock-icon">🛑</div>
+          <h2>Límite de Tiempo Alcanzado</h2>
+          <p>Para garantizar un servicio fluido para todos, por favor espera unos momentos antes de realizar la siguiente consulta.</p>
+          
+          <div class="timer-display">
+            {{ chatStore.blockTimer }}<span>s</span>
+          </div>
+          
+          <div class="progress-bar">
+            <div class="progress-fill" :style="{ width: (chatStore.blockTimer / 60 * 100) + '%' }"></div>
+          </div>
+          
+          <p class="modal-note">El sistema se desbloqueará automáticamente.</p>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <style lang="scss" scoped>
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1.5rem;
+}
+
+.modal-content {
+  background: var(--bg-card);
+  padding: 2.5rem;
+  border-radius: 24px;
+  max-width: 450px;
+  width: 100%;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  animation: modalPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  .lock-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+  }
+
+  h2 {
+    color: var(--text-main);
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  p {
+    color: var(--text-sec);
+    line-height: 1.5;
+    margin-bottom: 2rem;
+    font-size: 0.95rem;
+  }
+
+  .timer-display {
+    font-size: 4rem;
+    font-weight: 800;
+    color: var(--accent);
+    margin-bottom: 1rem;
+    font-variant-numeric: tabular-nums;
+
+    span {
+      font-size: 1.5rem;
+      margin-left: 0.2rem;
+      opacity: 0.7;
+    }
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      transition: width 1s linear;
+    }
+  }
+
+  .modal-note {
+    font-size: 0.75rem;
+    margin-bottom: 0;
+    opacity: 0.6;
+  }
+}
+
+.input-form.blocked {
+  opacity: 0.7;
+  background: rgba(0, 0, 0, 0.2) !important;
+  cursor: not-allowed;
+
+  input {
+    cursor: not-allowed;
+  }
+}
+
+// Transitions
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+@keyframes modalPop {
+  from {
+    transform: scale(0.8) translateY(20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+// ... (resto de los estilos existentes igual)
 .agent-view {
   height: 100vh;
   display: flex;
@@ -170,14 +327,16 @@ onMounted(() => {
         color: #10b981;
         display: flex;
         align-items: center;
-        gap: 0.25rem;
+        gap: 0.4rem;
+        font-weight: 600;
 
         &::before {
           content: '';
-          width: 6px;
-          height: 6px;
+          width: 8px;
+          height: 8px;
           background: currentColor;
           border-radius: 50%;
+          box-shadow: 0 0 8px #10b981;
         }
       }
     }
@@ -188,17 +347,6 @@ onMounted(() => {
     align-items: center;
     gap: 1rem;
   }
-}
-
-.provider-select {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: var(--text-main);
-  padding: 0.4rem 0.75rem;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  outline: none;
-  cursor: pointer;
 }
 
 .icon-btn {
@@ -254,7 +402,7 @@ onMounted(() => {
   }
 
   &::-webkit-scrollbar-thumb {
-    background: rgba(var(--text-main), 0.1);
+    background: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
   }
 }
@@ -262,7 +410,7 @@ onMounted(() => {
 .message-bubble {
   display: flex;
   gap: 1rem;
-  max-width: 80%;
+  max-width: 85%;
   animation: slideUp 0.3s ease-out;
 
   &.user {
@@ -273,6 +421,7 @@ onMounted(() => {
       background: var(--accent);
       color: white;
       border-radius: 18px 18px 4px 18px;
+      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.2);
     }
 
     .message-meta {
@@ -288,56 +437,124 @@ onMounted(() => {
       color: var(--text-main);
       border-radius: 18px 18px 18px 4px;
       border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     }
   }
 
   .avatar {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     background: white;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
     img {
-      width: 22px;
+      width: 24px;
       height: auto;
     }
   }
 
   .message-content {
-    padding: 0.85rem 1.25rem;
+    padding: 1rem 1.25rem;
     font-size: 0.95rem;
-    line-height: 1.5;
+    line-height: 1.6;
     white-space: pre-wrap;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   }
 
   .message-meta {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    margin-top: 0.4rem;
-    font-size: 0.7rem;
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
     color: var(--text-sec);
 
     .provider-tag {
       text-transform: uppercase;
-      background: rgba(var(--accent), 0.1);
+      background: rgba(37, 99, 235, 0.1);
       color: var(--accent);
-      padding: 1px 6px;
-      border-radius: 4px;
-      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-weight: 800;
+      font-size: 0.65rem;
     }
+  }
+}
+
+// Markdown & Table Styles
+.markdown-body {
+  :deep(p) {
+    margin-bottom: 0.75rem;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  :deep(strong) {
+    font-weight: 700;
+    color: inherit;
+  }
+
+  :deep(.table-container) {
+    overflow-x: auto;
+    margin: 1rem 0;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  :deep(table) {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+
+    th,
+    td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    th {
+      background: rgba(255, 255, 255, 0.05);
+      font-weight: 700;
+      color: var(--text-sec);
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+  }
+
+  :deep(ul, ol) {
+    padding-left: 1.5rem;
+    margin-bottom: 1rem;
+
+    li {
+      margin-bottom: 0.4rem;
+    }
+  }
+
+  :deep(code) {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.9em;
   }
 }
 
 .typing-indicator {
   display: flex;
   gap: 4px;
-  padding: 0.85rem 1.25rem;
+  padding: 1rem 1.25rem;
   background: var(--bg-card);
   border-radius: 18px 18px 18px 4px;
 
@@ -365,14 +582,18 @@ onMounted(() => {
   .input-form {
     background: var(--bg-card);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
+    border-radius: 20px;
     display: flex;
-    padding: 0.5rem;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
-    transition: focus-within 0.2s;
+    padding: 0.6rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    max-width: 900px;
+    margin: 0 auto;
 
     &:focus-within {
       border-color: var(--accent);
+      box-shadow: 0 10px 40px rgba(37, 99, 235, 0.15);
+      transform: translateY(-2px);
     }
 
     input {
@@ -380,7 +601,7 @@ onMounted(() => {
       background: transparent;
       border: none;
       color: var(--text-main);
-      padding: 0.75rem 1rem;
+      padding: 0.75rem 1.25rem;
       font-size: 1rem;
       outline: none;
 
@@ -391,47 +612,50 @@ onMounted(() => {
     }
 
     .send-btn {
-      width: 42px;
-      height: 42px;
+      width: 48px;
+      height: 48px;
       background: var(--accent);
       border: none;
-      border-radius: 12px;
+      border-radius: 15px;
       color: white;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: transform 0.2s;
+      transition: all 0.2s ease;
 
       &:hover {
         transform: scale(1.05);
+        background: var(--accent-dark);
       }
 
       &:disabled {
         opacity: 0.5;
         background: var(--text-sec);
+        cursor: not-allowed;
       }
 
       svg {
-        width: 20px;
-        height: 20px;
+        width: 22px;
+        height: 22px;
       }
     }
   }
 
   .disclaimer {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     color: var(--text-sec);
     text-align: center;
-    margin-top: 0.75rem;
+    margin-top: 1rem;
     opacity: 0.6;
+    font-weight: 500;
   }
 }
 
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(15px);
   }
 
   to {
@@ -445,11 +669,13 @@ onMounted(() => {
   0%,
   80%,
   100% {
-    transform: scale(0);
+    transform: scale(0.3);
+    opacity: 0.3;
   }
 
   40% {
     transform: scale(1.0);
+    opacity: 1;
   }
 }
 
@@ -459,7 +685,6 @@ onMounted(() => {
     border-color: #e2e8f0;
   }
 
-  .provider-select,
   .icon-btn {
     background: #f1f5f9;
     border-color: #e2e8f0;
@@ -467,32 +692,63 @@ onMounted(() => {
   }
 
   .message-bubble.assistant .message-content {
-    background: #f8fafc;
+    background: #ffffff;
     border-color: #e2e8f0;
   }
 
   .avatar {
-    box-shadow: 0 0 0 1px #e2e8f0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   }
 
   .input-form {
     background: white;
     border-color: #e2e8f0;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   }
 
   .typing-indicator {
     background: #f8fafc;
   }
+
+  .markdown-body {
+    :deep(table) {
+      th {
+        background: #f1f5f9;
+        color: #475569;
+      }
+
+      td,
+      th {
+        border-color: #e2e8f0;
+      }
+    }
+
+    :deep(code) {
+      background: #f1f5f9;
+      color: #ef4444;
+    }
+  }
 }
 
 @media (max-width: 640px) {
-  .header-right .provider-select {
-    display: none;
+  .message-bubble {
+    max-width: 95%;
   }
 
-  .message-bubble {
-    max-width: 90%;
+  .app-header {
+    padding: 0.5rem 1rem;
+  }
+
+  .input-area {
+    padding: 1rem;
+  }
+
+  .avatar {
+    width: 30px;
+    height: 30px;
+
+    img {
+      width: 20px;
+    }
   }
 }
 </style>

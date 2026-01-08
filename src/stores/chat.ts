@@ -12,10 +12,11 @@ export interface Message {
 export const useChatStore = defineStore('chat', () => {
   const messages = ref<Message[]>([]);
   const isTyping = ref(false);
-  const selectedProvider = ref<'claude' | 'gemini'>('claude');
+  const isBlocked = ref(false);
+  const blockTimer = ref(0);
 
   const sendMessage = async (text: string) => {
-    if (!text.trim()) return;
+    if (!text.trim() || isBlocked.value) return;
 
     // Add user message
     const userMsg: Message = {
@@ -34,7 +35,7 @@ export const useChatStore = defineStore('chat', () => {
         content: m.content
       }));
 
-      const response = await chatService.sendMessage(text, history, selectedProvider.value);
+      const response = await chatService.sendMessage(text, history);
 
       const assistantMsg: Message = {
         role: 'assistant',
@@ -44,9 +45,22 @@ export const useChatStore = defineStore('chat', () => {
       };
       messages.value.push(assistantMsg);
     } catch (error) {
+      // Activar bloqueo si hay error
+      isBlocked.value = true;
+      blockTimer.value = 60;
+
+      const interval = setInterval(() => {
+        blockTimer.value--;
+        if (blockTimer.value <= 0) {
+          isBlocked.value = false;
+          clearInterval(interval);
+        }
+      }, 1000);
+
       const errorMsg: Message = {
         role: 'assistant',
-        content: 'Lo siento, ha ocurrido un error al procesar tu mensaje. Por favor, intenta de nuevo.',
+        content: `### ⚠️ Se ha alcanzado un límite temporal.
+Por favor, espera a que el contador finalice para continuar con tu consulta.`,
         timestamp: Date.now()
       };
       messages.value.push(errorMsg);
@@ -57,12 +71,15 @@ export const useChatStore = defineStore('chat', () => {
 
   const clearChat = () => {
     messages.value = [];
+    isBlocked.value = false;
+    blockTimer.value = 0;
   };
 
   return {
     messages,
     isTyping,
-    selectedProvider,
+    isBlocked,
+    blockTimer,
     sendMessage,
     clearChat
   };

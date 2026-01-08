@@ -7,7 +7,7 @@ interface ChatResponse {
 }
 
 class ChatService extends APIBase {
-  async sendMessage(message: string, history: any[] = [], provider: string = 'claude'): Promise<ChatResponse> {
+  async sendMessage(message: string, history: any[] = [], provider?: string): Promise<ChatResponse> {
     try {
       const response = await this.post<ChatResponse>('chat', {
         message,

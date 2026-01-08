@@ -8,27 +8,31 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: LoginView,
+      meta: { title: 'Iniciar Sesión | Agente IA' }
     },
     {
       path: '/dashboard',
       name: 'dashboard',
       component: () => import('../views/AgentChatView.vue'),
-      meta: { requiresAuth: true }
+      meta: {
+        requiresAuth: true,
+        title: 'Asistente Virtual | Prefectura del Guayas'
+      }
     },
     {
       path: '/',
       redirect: '/login'
-    },
-    {
-      path: '/about',
-      name: 'about',
-      component: () => import('../views/AboutView.vue'),
     },
   ],
 })
 
 router.beforeEach((to, from, next) => {
   const isAuthenticated = localStorage.getItem('isAuth') === 'true';
+
+  // SEO: Update page title
+  if (to.meta.title) {
+    document.title = to.meta.title as string;
+  }
 
   if (to.meta.requiresAuth && !isAuthenticated) {
     next('/login');
